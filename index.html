@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#101820">
+<title>CODED: LAST ZONE</title>
+<style>
+:root{--bg:#101820;--panel:#182630;--accent:#c7ff3d;--red:#ff5555;--white:#f4f7f8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--white);font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hud{position:fixed;inset:0;pointer-events:none}
+.top{display:flex;justify-content:space-between;align-items:flex-start;padding:calc(env(safe-area-inset-top) + 10px) 12px 0;gap:8px}
+.brand{font-weight:1000;letter-spacing:1px;font-size:15px;text-shadow:0 2px 6px #000}
+.brand small{display:block;color:var(--accent);font-size:10px;letter-spacing:3px}
+.pill{background:#101820d9;border:1px solid #ffffff30;border-radius:10px;padding:7px 10px;font-size:12px;font-weight:800;box-shadow:0 4px 16px #0005}
+#zone{color:var(--accent)} #healthWrap{width:120px;height:7px;background:#ffffff30;border-radius:8px;overflow:hidden;margin-top:5px}#health{height:100%;width:100%;background:var(--accent);transition:width .15s}
+#message{position:absolute;top:22%;left:50%;transform:translateX(-50%);font-weight:900;font-size:clamp(18px,5vw,28px);text-align:center;text-shadow:0 3px 10px #000;white-space:nowrap}
+.bottom{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 12px);left:0;right:0;display:flex;justify-content:space-between;align-items:flex-end;padding:0 15px;pointer-events:none}
+.pad{width:132px;height:132px;border-radius:50%;border:2px solid #ffffff50;background:#0b121a70;position:relative;pointer-events:auto;touch-action:none;box-shadow:inset 0 0 20px #0004}
+.pad:after{content:"MOVE";position:absolute;left:0;right:0;top:8px;text-align:center;font-size:9px;letter-spacing:2px;color:#ffffff90;font-weight:800}
+#stick{position:absolute;width:48px;height:48px;border-radius:50%;background:#c7ff3dcc;border:2px solid #efffc0;left:40px;top:40px;box-shadow:0 3px 10px #0008}
+.actions{display:flex;gap:10px;align-items:flex-end;pointer-events:auto}
+.action{width:66px;height:66px;border-radius:50%;border:2px solid #ffffff80;background:#172631d9;color:white;font-weight:900;font-size:11px;touch-action:none;box-shadow:0 4px 14px #0006}
+.action.fire{width:78px;height:78px;background:#a92c2ce8;border-color:#ffaaaa;font-size:13px}
+.action:active{transform:scale(.95);filter:brightness(1.25)}
+#reload{position:absolute;right:18px;bottom:calc(env(safe-area-inset-bottom) + 105px);pointer-events:auto;width:68px;height:32px;border-radius:8px;border:1px solid #fff6;background:#15232ddd;color:#fff;font-weight:800;font-size:11px}
+#start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#09131bd9,#0a141deF);padding:20px;z-index:5}
+.card{width:min(440px,100%);border:1px solid #ffffff2c;border-radius:22px;padding:25px 22px;background:linear-gradient(145deg,#203541,#101a22);box-shadow:0 18px 70px #0009}
+.eyebrow{color:var(--accent);font-size:11px;letter-spacing:4px;font-weight:900}
+h1{font-size:clamp(34px,10vw,52px);line-height:.95;margin:12px 0 8px;letter-spacing:-2px}
+h1 span{color:var(--accent)}
+.card p{color:#c4d0d5;line-height:1.5;font-size:14px}
+.instructions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}
+.instructions div{background:#ffffff0d;border:1px solid #ffffff16;border-radius:10px;padding:10px;font-size:12px;color:#dce5e9}
+#play{width:100%;padding:16px;border:0;border-radius:12px;background:var(--accent);color:#101820;font-weight:1000;font-size:16px;letter-spacing:1px}
+#toast{position:absolute;top:36%;left:50%;transform:translate(-50%,-50%);font-weight:900;background:#101820dd;padding:10px 14px;border-radius:10px;display:none;text-align:center}
+#desktopHint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:10px;color:#ffffff80;white-space:nowrap}
+@media(min-width:800px){.pad{width:150px;height:150px}.actions .action{width:72px;height:72px}.actions .fire{width:86px;height:86px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div class="hud">
+ <div class="top">
+  <div class="brand">CODED <small>LAST ZONE</small><div id="healthWrap"><div id="health"></div></div></div>
+  <div class="pill">ALIVE <span id="alive">12</span></div>
+  <div class="pill">AMMO <span id="ammo">30</span>/∞</div>
+  <div class="pill" id="zone">ZONE 100%</div>
+ </div>
+ <div id="message"></div><div id="toast"></div>
+ <button id="reload">RELOAD ↻</button>
+ <div class="bottom">
+  <div class="pad" id="pad"><div id="stick"></div></div>
+  <div class="actions">
+   <button class="action" id="heal">MED<br>+25</button>
+   <button class="action" id="jump">DASH</button>
+   <button class="action fire" id="fire">FIRE</button>
+  </div>
+ </div>
+</div>
+<div id="start"><div class="card">
+ <div class="eyebrow">MOBILE SURVIVAL PROTOTYPE</div>
+ <h1>CODED:<br><span>LAST ZONE</span></h1>
+ <p>Drop into a modern combat arena. Eliminate enemy operators, collect supplies, and stay inside the shrinking safe zone. Be the last one standing.</p>
+ <div class="instructions"><div>🕹️ <b>MOVE</b><br>Use the left joystick</div><div>🎯 <b>AIM & FIRE</b><br>Tap FIRE to target enemies</div><div>⚡ <b>DASH</b><br>Quickly escape danger</div><div>✚ <b>MED</b><br>Restore some health</div></div>
+ <button id="play">DEPLOY NOW</button>
+ <p style="font-size:11px;text-align:center;margin-bottom:0">Prototype v1 • Offline after the file loads • Bots, not real players</p>
+ </div></div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W=0,H=0,dpr=1;
+function resize(){dpr=Math.min(devicePixelRatio||1,1.7);W=innerWidth;H=innerHeight;canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+const $=id=>document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+let running=false,over=false,won=false,last=0,elapsed=0,ammo=30,kills=0,toastTimer=0,zoneRadius=720,fireHeld=false;
+const world={w:1800,h:1800};
+let player,bots,loot,bullets,particles,cam={x:0,y:0},zone={x:900,y:900};
+function newGame(){
+ player={x:900,y:900,r:16,hp:100,angle:0,speed:210,heal:1,dash:0,invuln:0};
+ bots=[];loot=[];bullets=[];particles=[];kills=0;ammo=30;elapsed=0;zoneRadius=790;over=false;won=false;
+ for(let i=0;i<11;i++){let a=rnd(0,Math.PI*2),r=rnd(240,680);bots.push({x:clamp(900+Math.cos(a)*r,60,1740),y:clamp(900+Math.sin(a)*r,60,1740),r:15,hp:60,maxhp:60,angle:0,speed:rnd(45,80),cool:rnd(.3,2),alive:true,flash:0})}
+ for(let i=0;i<18;i++)loot.push({x:rnd(100,1700),y:rnd(100,1700),kind:Math.random()<.62?'ammo':'med',alive:true});
+ updateHUD();showToast('SURVIVE. STAY IN THE ZONE.');}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function showToast(t){$('toast').textContent=t;$('toast').style.display='block';toastTimer=1.7}
+function updateHUD(){$('health').style.width=clamp(player?player.hp:100,0,100)+'%';$('alive').textContent=(bots.filter(b=>b.alive).length+(player&&player.hp>0?1:0));$('ammo').textContent=ammo;$('zone').textContent='ZONE '+Math.round(zoneRadius/7.9)+'%';}
+function start(){newGame();$('start').style.display='none';running=true;last=performance.now();requestAnimationFrame(loop)}
+$('play').addEventListener('click',start);
+function worldToScreen(x,y){return{x:x-cam.x+W/2,y:y-cam.y+H/2}}
+function drawGround(){
+ ctx.fillStyle='#263a36';ctx.fillRect(0,0,W,H);
+ const step=100,ox=((W/2-cam.x)%step+step)%step,oy=((H/2-cam.y)%step+step)%step;
+ ctx.strokeStyle='#91b0a01b';ctx.lineWidth=1;
+ for(let x=ox;x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+ for(let y=oy;y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ // roads
+ const road=worldToScreen(550,0);ctx.fillStyle='#344044';ctx.fillRect(road.x-45,-H,90,H*3);
+ const road2=worldToScreen(0,1170);ctx.fillRect(-W,road2.y-42,W*3,84);
+ ctx.strokeStyle='#c7b98755';ctx.setLineDash([22,22]);ctx.beginPath();ctx.moveTo(road.x,0);ctx.lineTo(road.x,H);ctx.stroke();ctx.beginPath();ctx.moveTo(0,road2.y);ctx.lineTo(W,road2.y);ctx.stroke();ctx.setLineDash([]);
+ // buildings
+ for(let gx=100;gx<1750;gx+=300)for(let gy=100;gy<1750;gy+=300){
+  if((gx>460&&gx<650)||(gy>1080&&gy<1260))continue;
+  let p=worldToScreen(gx,gy),size=95;
+  ctx.fillStyle='#0004';ctx.fillRect(p.x-size/2+9,p.y-size/2+12,size,size);
+  ctx.fillStyle='#59656a';ctx.fillRect(p.x-size/2,p.y-size/2,size,size);
+  ctx.fillStyle='#79858a';ctx.fillRect(p.x-size/2,p.y-size/2,size,9);
+  ctx.fillStyle='#26343b';for(let i=0;i<3;i++){ctx.fillRect(p.x-size/2+12+i*25,p.y-size/2+22,12,16);ctx.fillRect(p.x-size/2+12+i*25,p.y+7,12,16)}
+ }
+ // world boundary
+ const tl=worldToScreen(0,0),br=worldToScreen(world.w,world.h);ctx.strokeStyle='#d7e4da66';ctx.lineWidth=4;ctx.strokeRect(tl.x,tl.y,br.x-tl.x,br.y-tl.y);
+}
+function shadow(x,y,r){ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(x+3,y+7,r*1.15,r*.72,0,0,Math.PI*2);ctx.fill()}
+function drawOperator(o,isPlayer=false){
+ let p=worldToScreen(o.x,o.y);if(p.x<-70||p.x>W+70||p.y<-70||p.y>H+70)return;
+ shadow(p.x,p.y,o.r);
+ ctx.save();ctx.translate(p.x,p.y);ctx.rotate(o.angle||0);
+ // legs and body, top-down pseudo 3D
+ ctx.fillStyle=isPlayer?'#a9c8ce':'#c06a51';ctx.fillRect(-o.r*.8,-o.r*.35,o.r*1.65,o.r*.7);
+ ctx.fillStyle=isPlayer?'#263d4a':'#563c37';ctx.fillRect(-o.r*.5,-o.r*.9,o.r*.85,o.r*1.8);
+ ctx.fillStyle=isPlayer?'#c7ff3d':'#d7a078';ctx.beginPath();ctx.arc(o.r*.25,0,o.r*.48,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#20282d';ctx.fillRect(o.r*.1,-o.r*.15,o.r*1.35,o.r*.3);
+ ctx.fillStyle='#151c21';ctx.fillRect(o.r*1.15,-o.r*.13,o.r*.9,o.r*.26);
+ ctx.restore();
+ if(!isPlayer&&o.alive){ctx.fillStyle='#0009';ctx.fillRect(p.x-18,p.y-o.r-12,36,4);ctx.fillStyle='#ff6258';ctx.fillRect(p.x-18,p.y-o.r-12,36*o.hp/o.maxhp,4)}
+ if(isPlayer){ctx.strokeStyle='#c7ff3d99';ctx.beginPath();ctx.arc(p.x,p.y,o.r+7,0,Math.PI*2);ctx.stroke()}
+}
+function drawLoot(l){let p=worldToScreen(l.x,l.y);if(p.x<-20||p.x>W+20||p.y<-20||p.y>H+20)return;ctx.fillStyle=l.kind==='med'?'#7fffb0':'#ffdb69';ctx.fillRect(p.x-9,p.y-9,18,18);ctx.strokeStyle='#10202a';ctx.lineWidth=2;ctx.strokeRect(p.x-9,p.y-9,18,18);ctx.fillStyle='#15232b';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(l.kind==='med'?'+':'A',p.x,p.y+1)}
+function drawZone(){let p=worldToScreen(zone.x,zone.y);ctx.fillStyle='#5a7cff12';ctx.beginPath();ctx.rect(0,0,W,H);ctx.arc(p.x,p.y,zoneRadius,0,Math.PI*2,true);ctx.fill('evenodd');ctx.strokeStyle='#78a3ff';ctx.lineWidth=3;ctx.setLineDash([13,9]);ctx.beginPath();ctx.arc(p.x,p.y,zoneRadius,0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
+function burst(x,y,color,n=8){for(let i=0;i<n;i++)particles.push({x,y,vx:rnd(-100,100),vy:rnd(-100,100),life:rnd(.15,.5),color})}
+function shoot(){if(!running||over)return;if(ammo<=0){showToast('OUT OF AMMO — RELOAD');return}ammo--;let target=null,bd=Infinity;for(const b of bots){if(!b.alive)continue;let d=dist(player,b);if(d<390&&d<bd){let ang=Math.atan2(b.y-player.y,b.x-player.x),diff=Math.abs(Math.atan2(Math.sin(ang-player.angle),Math.cos(ang-player.angle)));if(diff<.82){target=b;bd=d}}}
+ let ang=player.angle+(Math.random()-.5)*.09;bullets.push({x:player.x+Math.cos(ang)*22,y:player.y+Math.sin(ang)*22,vx:Math.cos(ang)*650,vy:Math.sin(ang)*650,life:.55,owner:'p'});
+ burst(player.x+Math.cos(ang)*25,player.y+Math.sin(ang)*25,'#ffe7a1',2);
+ if(target){target.hp-=35;target.flash=.12;burst(target.x,target.y,'#ff8d70',4);if(target.hp<=0){target.alive=false;kills++;showToast('OPERATOR ELIMINATED');if(Math.random()<.65)loot.push({x:target.x,y:target.y,kind:Math.random()<.5?'med':'ammo',alive:true})}}
+ updateHUD()}
+$('fire').addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;shoot()});['pointerup','pointercancel','pointerleave'].forEach(ev=>$('fire').addEventListener(ev,()=>fireHeld=false));
+$('reload').addEventListener('pointerdown',e=>{e.preventDefault();ammo=30;updateHUD();showToast('MAGAZINE RELOADED')});
+$('heal').addEventListener('pointerdown',e=>{e.preventDefault();if(player&&player.heal>0&&player.hp<100){player.hp=Math.min(100,player.hp+25);player.heal--;updateHUD();showToast('MEDKIT USED')}else showToast(player.heal?'HEALTH IS FULL':'NO MEDKITS LEFT')});
+$('jump').addEventListener('pointerdown',e=>{e.preventDefault();if(player)player.dash=.22});
+let joy={x:0,y:0},pad=$('pad'),stick=$('stick'),joyId=null;
+function setJoy(e){let r=pad.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy),max=r.width*.31;if(len>max){dx=dx/len*max;dy=dy/len*max}joy.x=dx/max;joy.y=dy/max;stick.style.left=(r.width/2-24+dx)+'px';stick.style.top=(r.height/2-24+dy)+'px'}
+pad.addEventListener('pointerdown',e=>{e.preventDefault();joyId=e.pointerId;pad.setPointerCapture(joyId);setJoy(e)});
+pad.addEventListener('pointermove',e=>{if(e.pointerId===joyId)setJoy(e)});
+function resetJoy(){joyId=null;joy.x=joy.y=0;stick.style.left='40px';stick.style.top='40px'}pad.addEventListener('pointerup',resetJoy);pad.addEventListener('pointercancel',resetJoy);
+const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===' '){e.preventDefault();shoot()}if(e.key.toLowerCase()==='r'){ammo=30;updateHUD()}if(e.key.toLowerCase()==='h')$('heal').dispatchEvent(new PointerEvent('pointerdown'))});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function update(dt){
+ elapsed+=dt;zoneRadius=Math.max(220,790-elapsed*4.5);
+ let mx=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),my=joy.y+(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0),ml=Math.hypot(mx,my)||1;mx/=Math.max(1,ml);my/=Math.max(1,ml);
+ let speed=player.speed*(player.dash>0?2.8:1);player.x=clamp(player.x+mx*speed*dt,25,1775);player.y=clamp(player.y+my*speed*dt,25,1775);if(player.dash>0)player.dash-=dt;
+ if(mx||my)player.angle=Math.atan2(my,mx);
+ // face nearest enemy when still
+ if(!mx&&!my){let near=bots.filter(b=>b.alive).sort((a,b)=>dist(player,a)-dist(player,b))[0];if(near)player.angle=Math.atan2(near.y-player.y,near.x-player.x)}
+ cam.x+=(player.x-cam.x)*Math.min(1,dt*5);cam.y+=(player.y-cam.y)*Math.min(1,dt*5);
+ for(const b of bots){if(!b.alive)continue;b.cool-=dt;b.flash=Math.max(0,b.flash-dt);let d=dist(b,player),a=Math.atan2(player.y-b.y,player.x-b.x);b.angle=a;
+  if(d>115){b.x+=Math.cos(a)*b.speed*dt;b.y+=Math.sin(a)*b.speed*dt}else if(d<65){b.x-=Math.cos(a)*b.speed*.6*dt;b.y-=Math.sin(a)*b.speed*.6*dt}
+  if(d<390&&b.cool<=0){b.cool=rnd(1.1,2.4);if(Math.random()<.52){player.hp-=rnd(4,9);burst(player.x,player.y,'#ff6258',2);updateHUD()}}
+  if(Math.hypot(b.x-zone.x,b.y-zone.y)>zoneRadius){b.hp-=dt*5;if(b.hp<=0){b.alive=false;kills++}}
+ }
+ if(Math.hypot(player.x-zone.x,player.y-zone.y)>zoneRadius){player.hp-=dt*8;if(Math.random()<dt*2)showToast('OUTSIDE SAFE ZONE!');updateHUD()}
+ for(const l of loot){if(l.alive&&dist(player,l)<30){l.alive=false;if(l.kind==='med'){player.heal=Math.min(3,player.heal+1);showToast('MEDKIT PICKED UP')}else{ammo=Math.min(90,ammo+15);showToast('AMMO +15')}updateHUD()}}
+ for(const b of bullets){b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.owner==='e'&&dist(b,player)<player.r+4){player.hp-=8;b.life=0} }
+ bullets=bullets.filter(b=>b.life>0);
+ for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt}particles=particles.filter(p=>p.life>0);
+ if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').style.display='none'}
+ updateHUD();
+ if(player.hp<=0){player.hp=0;finish(false)}else if(bots.every(b=>!b.alive)){finish(true)}
+}
+function finish(win){if(over)return;over=true;running=false;won=win;$('start').style.display='flex';$('start').querySelector('.eyebrow').textContent=win?'CHAMPION • VICTORY':'MATCH OVER';$('start').querySelector('h1').innerHTML=win?'WINNER<br><span>WINNER!</span>':'ELIMINATED<br><span>CODED</span>';$('start').querySelector('.card p').textContent=win?'You cleared the arena. You are the last operator standing.':'You were eliminated. Train, redeploy, and take the last zone.';$('start').querySelector('.instructions').innerHTML='<div>☠️ <b>ELIMINATIONS</b><br>'+kills+' operators</div><div>⏱️ <b>SURVIVED</b><br>'+Math.floor(elapsed)+' seconds</div><div>🎯 <b>MODE</b><br>Solo survival</div><div>↻ <b>NEXT MATCH</b><br>Tap below to redeploy</div>';$('play').textContent='REDEPLOY';}
+function loop(now){if(!running)return;let dt=Math.min(.035,(now-last)/1000||0);last=now;update(dt);render();if(running)requestAnimationFrame(loop)}
+function render(){
+ ctx.clearRect(0,0,W,H);drawGround();
+ for(const l of loot)if(l.alive)drawLoot(l);
+ for(const b of bots)if(b.alive)drawOperator(b);
+ drawOperator(player,true);drawZone();
+ for(const b of bullets){let p=worldToScreen(b.x,b.y);ctx.fillStyle='#ffe8a0';ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill()}
+ for(const p of particles){let s=worldToScreen(p.x,p.y);ctx.globalAlpha=clamp(p.life*2,0,1);ctx.fillStyle=p.color;ctx.fillRect(s.x,s.y,4,4);ctx.globalAlpha=1}
+ // compass + minimap
+ const mw=92,mh=92,mx=W-mw-12,my=H*.5-46;ctx.fillStyle='#071018bb';ctx.fillRect(mx,my,mw,mh);ctx.strokeStyle='#ffffff66';ctx.strokeRect(mx,my,mw,mh);
+ ctx.strokeStyle='#78a3ff';ctx.beginPath();ctx.arc(mx+zone.x/world.w*mw,my+zone.y/world.h*mh,zoneRadius/world.w*mw,0,Math.PI*2);ctx.stroke();
+ for(const b of bots)if(b.alive){ctx.fillStyle='#ff695e';ctx.fillRect(mx+b.x/world.w*mw-2,my+b.y/world.h*mh-2,4,4)}
+ ctx.fillStyle='#c7ff3d';ctx.beginPath();ctx.arc(mx+player.x/world.w*mw,my+player.y/world.h*mh,4,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#ffffffb0';ctx.font='9px system-ui';ctx.textAlign='center';ctx.fillText('TACTICAL MAP',mx+mw/2,my+mh+12);
+}
+drawGround();player={x:900,y:900,r:16,hp:100,angle:0,heal:1};bots=[];loot=[];bullets=[];particles=[];cam.x=900;cam.y=900;render();
+})();
+</script>
+</body>
+</html>
